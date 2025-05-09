@@ -1,11 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Webcam from 'react-webcam';
+import { Clock, User, Calendar, Camera } from 'lucide-react';
 
 const TakeAttendance = ({ attendance }) => {
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [currentTime, setCurrentTime] = useState('');
   const webcamRef = React.useRef(null);
+
+  useEffect(() => {
+    // Update the current time every second
+    const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const recognizeFace = async () => {
     setIsRecognizing(true);
@@ -46,8 +58,25 @@ const TakeAttendance = ({ attendance }) => {
     }
   };
 
+  // Format current date for display
+  const formatDate = () => {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date().toLocaleDateString(undefined, options);
+  };
+
   return (
     <div className="attendance-container">
+      <div className="header-info">
+        <div className="header-date">
+          <Calendar size={18} />
+          <span>{formatDate()}</span>
+        </div>
+        <div className="header-time">
+          <Clock size={18} />
+          <span>{currentTime}</span>
+        </div>
+      </div>
+
       <h2>Take Attendance</h2>
       
       <div className="webcam-container">
@@ -55,14 +84,16 @@ const TakeAttendance = ({ attendance }) => {
           audio={false}
           ref={webcamRef}
           screenshotFormat="image/jpeg"
-          videoConstraints={{ facingMode: 'user' }}
+          videoConstraints={{ facingMode: "user" }}
+          className="webcam"
         />
         <button 
           onClick={recognizeFace} 
           disabled={isRecognizing}
-          className="recognize-btn"
+          className={`webcam-btn ${isRecognizing ? 'loading' : ''}`}
         >
-          {isRecognizing ? 'Processing...' : 'Recognize Face'}
+          <Camera size={18} />
+          <span>{isRecognizing ? 'Processing...' : 'Recognize Face'}</span>
         </button>
       </div>
       
@@ -73,25 +104,33 @@ const TakeAttendance = ({ attendance }) => {
       )}
       
       <div className="attendance-list">
-        <h3>Today's Attendance</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {attendance.map(record => (
-              <tr key={record.id}>
-                <td>{record.student_id}</td>
-                <td>{record.name}</td>
-                <td>{record.time}</td>
+        <h3>
+          <User size={18} />
+          <span>Today's Attendance ({attendance.length} students)</span>
+        </h3>
+
+        {attendance.length > 0 ? (
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Time</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {attendance.map(record => (
+                <tr key={record.id}>
+                  <td>{record.student_id}</td>
+                  <td>{record.name}</td>
+                  <td>{record.time}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="empty-state">No attendance records for today yet</div>
+        )}
       </div>
     </div>
   );
